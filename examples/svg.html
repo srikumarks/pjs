@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+    <script type="text/f">
+        {div.canvas} sel
+        svg 100 width 100 height
+        line 10 x1 10 y1 90 x2 90 y2 {red} stroke 5 stroke-width.
+        circle 50 cx 50 cy 20 r {black} stroke.
+        .
+    </script>
+</head>
+<body>
+    <!-- <img f="@alt gen" alt="a cute small penguin"/> -->
+    <div class="canvas">
+    </div>
+    <script type="module" src="./js/pjs.js"></script>
+    <script type="module">
+        import { install } from "./js/pjs.js";
+        install(document);
+    </script>
+    </body>
+</html>
