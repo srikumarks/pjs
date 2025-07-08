@@ -14,7 +14,7 @@ Getting started
 
 You'll need all the js files including ``pjs.js``. In your HTML, you
 load up the ``pjs.js`` script and call its ``install`` function on the
-element or the ``document`` object according to your need.
+``document`` object.
 
 See the html files in the ``examples/`` folder for basic usage. You can start a
 python server in the ``examples/`` folder and then go to
