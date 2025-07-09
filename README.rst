@@ -141,6 +141,7 @@ Basic vocabulary
 4. ``rot`` - brings the third element on the stack to the top.
 
 5. ``+ - * / pow`` - binary math operators with the right operand being the stack top.
+   *All* binary operators work as though the stack top were the RHS argument.
 
 6. ``incr decr`` - increments/decrements the number on the stack top.
 
@@ -149,7 +150,7 @@ Basic vocabulary
 8. All unary functions in the Javascript ``Math`` object such as ``sin``,
    ``cos``, are available directly.
 
-9. ``<? <=? >? >=? =?`` - comparison operators that place a boolean on the stack
+9. ``< <= > >= =`` - comparison operators that place a boolean on the stack
    as their result.
 
 10. ``,`` - short circuiting conjunction (i.e. "and"). It will check the stack top.

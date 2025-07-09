@@ -524,19 +524,19 @@ function stdlib(defns) {
         }
     }
     defUnaryMath(defns, Math);
-    defns['<?'] = function (sel, pstack, ds, defns) {
+    defns['<'] = function (sel, pstack, ds, defns) {
         return forth(sel, pstack, cons(ds.cdr.car < ds.car, ds.cdr.cdr), defns);
     };
-    defns['<=?'] = function (sel, pstack, ds, defns) {
+    defns['<='] = function (sel, pstack, ds, defns) {
         return forth(sel, pstack, cons(ds.cdr.car <= ds.car, ds.cdr.cdr), defns);
     };
-    defns['>?'] = function (sel, pstack, ds, defns) {
+    defns['>'] = function (sel, pstack, ds, defns) {
         return forth(sel, pstack, cons(ds.cdr.car > ds.car, ds.cdr.cdr), defns);
     };
-    defns['>=?'] = function (sel, pstack, ds, defns) {
+    defns['>='] = function (sel, pstack, ds, defns) {
         return forth(sel, pstack, cons(ds.cdr.car >= ds.car, ds.cdr.cdr), defns);
     };
-    defns['=?'] = function (sel, pstack, ds, defns) {
+    defns['='] = function (sel, pstack, ds, defns) {
         return forth(sel, pstack, cons(ds.cdr.car === ds.car, ds.cdr.cdr), defns);
     };
     defns[','] = function (sel, pstack, ds, defns) {
