@@ -22,16 +22,11 @@ python server in the ``examples/`` folder and then go to
 
 .. code-block:: html
 
-   <script type="module" src="somewhere/pjs.js"></script>
-   <script type="module">
-        import {install} from "somewhere/pjs.js";
-        install(document, ["weblang"])
-   </script>
+   <script type="module" lang="svglang weblang" src="somewhere/pjs.js"></script>
 
-The second argument to ``install`` is an array of language modules.
-Currently three are available -- ``"weblang", "svglang", "genailang"``.
-If you leave out the second argument, all three languages are loaded up.
-If you're doing web UI, you'll at least need the ``weblang`` loaded.
+The ``lang`` attribute is optional and the ``weblang`` will be loaded
+by default anyway. So the above is effectively the same as ``lang="svglang"``.
+The available languages are ``weblang``, ``svglang`` and ``genailang``.
 
 The above script should be the last within your ``body`` as is common
 practice. You can include global scripts and element-wise scripts anywhere

@@ -742,4 +742,17 @@ export async function frun(programText, sel = null, langNames = kLangNames, refr
     return forth(sel ? [...document.querySelectorAll(sel)] : [], psProg(programText), empty(), defns);
 }
 
+const isBrowser = (function () { return typeof(window) !== 'undefined'; })();
 
+if (isBrowser) {
+    let myScript = document.querySelector('[src$="pjs.js"]');
+    window.addEventListener("load", function (event) {
+        let langs = ["weblang"];
+        if (myScript.hasAttribute("lang")) {
+            langs = langs.concat(myScript.getAttribute("lang").trim().split(/\s+/));
+            langs = [...(new Set(langs))];
+        }
+        console.log(langs);
+        install(document, langs);
+    });
+}
