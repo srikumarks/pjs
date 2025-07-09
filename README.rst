@@ -26,7 +26,7 @@ python server in the ``examples/`` folder and then go to
    <script type="module">
         import {install} from "somewhere/pjs.js";
         install(document, ["weblang"])
-    </script>
+   </script>
 
 The second argument to ``install`` is an array of language modules.
 Currently three are available -- ``"weblang", "svglang", "genailang"``.
