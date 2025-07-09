@@ -136,6 +136,16 @@ export function pslang(defns, api) {
         }
         return forth(sel, pstack, cons(text.join("\n\n"), dstack), defns);
     };
+    // {..url..} go
+    // Goes to the page similar to clicking on a link.
+    // So turning any element into the equivalent of <a> tag would be
+    // as though the following snippet were installed in its `f` attribute.
+    // (: @href go) ~onclick
+    defns.go = function (sel, pstack, dstack, defns) {
+        let url = dstack.car;
+        window.location.assign(url);
+        return forth(sel, pstack, dstack.cdr, defns);
+    };
     const knownVocabs = {}; // Key is URL, value is parsed program code.
     defns.vocab = async function (sel, ps, ds, defns) {
         // #lang:
