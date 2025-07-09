@@ -9,11 +9,12 @@
  * options.model defaults to "gpt-4o-mini"
  */
 export function openai_provider(options={},api_key="OPENAI_API_KEY") {
+    const isBrowser = (function () { return typeof(window) !== 'undefined'; })();
     if (api_key === "OPENAI_API_KEY") {
-        api_key = document.body.getAttribute("openai-api-key");
+        api_key = isBrowser ? document.body.getAttribute("openai-api-key") : null;
     }
     if (!options.model) {
-        options.model = document.body.getAttribute("openai-model-name") || "gpt-4o-mini";
+        options.model = (isBrowser && document.body.getAttribute("openai-model-name")) || "gpt-4o-mini";
     }
 
     // api is either "responses" for text or "images/generations" for
