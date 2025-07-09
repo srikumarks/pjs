@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+    <script type="text/f">
+        {div.canvas} sel
+        {Here is some plain text appended} . <br/>.
+        <strong> {Strong text} </strong>. <br/>.
+        <em> {Emphasized text} </em>. <br/>.
+        {Now for a list of items} .
+        <ul>
+        <li> {one} </li>
+        <li> {two} </li>
+        <li> 3 </li>
+        <li> {4 + 5 = } 4 5 + </li>
+        </ul>.
+    </script>
+</head>
+<body>
+    <!-- <img f="@alt gen" alt="a cute small penguin"/> -->
+    <div class="canvas">
+    </div>
+    <script type="module" src="./js/pjs.js"></script>
+    <script type="module">
+        import { install } from "./js/pjs.js";
+        install(document);
+    </script>
+    </body>
+</html>

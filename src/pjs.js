@@ -33,8 +33,22 @@ function whitespace(s) {
 function group(g) {
     return {t: g, value: [], s: ''};
 }
+function tagopen(w) {
+    let s = w.substring(1,w.length-1);
+    return {t: '<>', value: s, s: s};
+}
+function tagclose(w) {
+    let s = w.substring(2,w.length-1);
+    return {t: '</>', value: s, s: s};
+}
+function tagselfclosed(w) {
+    let s = w.substring(1,w.length-2);
+    return {t: '<./>', value: s, s: s};
+}
+
 
 export function psTokens(ps) {
+    const tagWords = /^(<([-a-zA-Z]+)>|<[/]([-a-zA-Z]+)>|<([-a-zA-Z]+)[/]>)$/;
     ps = ps.trim();
     let re = /([-+]?[0-9]+([.][0-9]+)?)|([^\s()\[\]{},;]+)|([(][:])|([(])|([)])|([\[])|([\]])|([{])|([}])|([,])|([;])|(\s+)/gu;
     let words = [...ps.matchAll(re)]
@@ -77,6 +91,36 @@ export function psTokens(ps) {
         } else {
             mwords.push({t: '?', s: w[0]});
         }
+
+        // If a word matches a tag start or tag end pattern,
+        // mark it with the appropriate token type other than
+        // word, because the parser deals with it differently.
+        let wordToCheckForTag = mwords[mwords.length-1];
+        if (wordToCheckForTag.t === 'w') {
+            if (wordToCheckForTag.s === '.') {
+                wordToCheckForTag = mwords[mwords.length-2];
+                if (wordToCheckForTag.t !== 'w') {
+                    wordToCheckForTag = null;
+                }
+            }
+            if (wordToCheckForTag) {
+                let m = wordToCheckForTag.s.match(tagWords);
+                if (m) {
+                    if (m[2]) {
+                        wordToCheckForTag.t = '<>';
+                        wordToCheckForTag.tag = m[2];
+                    } else if (m[3]) {
+                        wordToCheckForTag.t = '</>';
+                        wordToCheckForTag.tag = m[3];
+                    } else if (m[4]) {
+                        wordToCheckForTag.t = '<./>';
+                        wordToCheckForTag.tag = m[4];
+                    } else {
+                        throw new Error("Impossible condition");
+                    }
+                }
+            }
+        }
     }
     return mwords;
 }
@@ -114,6 +158,18 @@ export function psParse(tokens) {
             case false:
                 if (t.t === 'w') {
                     nodes.push(word(t.s));
+                    continue;
+                }
+                if (t.t === '<>') {
+                    nodes.push(tagopen(t.s));
+                    continue;
+                }
+                if (t.t === '</>') {
+                    nodes.push(tagclose(t.s));
+                    continue;
+                }
+                if (t.t === '<./>') {
+                    nodes.push(tagselfclosed(t.s));
                     continue;
                 }
                 if (t.t === 'n') {
@@ -351,6 +407,44 @@ export async function forth(sel, pstack, dstack, defns) {
             }
         case 'number':
             return forth(sel, pstack, cons(instr.value, dstack), defns);
+        case '<>': {
+            // Open tag. Create a new element and push it on to the stack.
+            // Also make it the current selection while remembering the
+            // previous selection.
+            let el = document.createElement(instr.value);
+            el.f_sel = sel;
+            el.f_maybeparent = sel[0];
+            el.f_isopen = true;
+            return forth([el], pstack, cons(el, dstack), defns);
+        }
+        case '<./>': {
+            // Self closed tag. Nothing to walk.
+            let el = document.createElement(instr.value);
+            el.f_sel = sel;
+            el.f_maybeparent = sel[0];
+            el.f_isopen = false;
+            return forth(sel, pstack, cons(el, dstack), defns);
+        }
+        case '</>': {
+            // Close tag. Walk the stack backwards until you encounter 
+            // the corresponding open tag and add as children anything
+            // you encounter on the way.
+            while (!(dstack.car instanceof Element 
+                     && dstack.car.tagName === sel[0].tagName
+                     && dstack.car.f_isopen)) {
+                if (dstack.car instanceof Element) {
+                    if (dstack.car.f_isopen) {
+                        throw new Error("Mismatched tag " + dstack.car.tagName);
+                    }
+                    sel[0].prepend(dstack.car);
+                } else {
+                    sel[0].prepend(dstack.car.toString());
+                }
+                dstack = dstack.cdr;
+            }
+            dstack.car.f_isopen = false;
+            return forth(dstack.car.f_sel, pstack, dstack, defns);
+        }
         case '[': {
             let n = dstack;
             pstack = cons(function (sel, pstack, dstack, defns) {
@@ -493,6 +587,24 @@ function stdlib(defns) {
             }
             return forth(sel, ps.cdr, ds.cdr, defns);
         }
+    };
+    // Commits the element on the top of the stack as an appended child
+    // of the current selection. If there is no current selection, uses the
+    // document.body
+    defns['.'] = function (sel, pstack, ds, defns) {
+        let parent = document.body;
+        if (sel && sel.length > 0) {
+            parent = sel[0];
+        }
+        if (ds.car instanceof Element) {
+            if (ds.car.f_isopen) {
+                throw new Error(`Tried to commit element ${ds.car.tagName} in the middle of being defined.`);
+            }
+            parent.append(ds.car);
+        } else {
+            parent.append(ds.car.toString());
+        }
+        return forth(sel, pstack, ds.cdr, defns);
     };
     defns['not'] = function (sel, pstack, ds, defns) {
         return forth(sel, pstack, cons(ds.car ? false : true, ds.cdr), defns);
