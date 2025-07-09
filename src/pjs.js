@@ -31,7 +31,7 @@ function whitespace(s) {
     return {t: 'ws', value: s, s: s};
 }
 function group(g) {
-    return {t: g, value: [], s: ''};
+    return {t: g, value: [], s: g};
 }
 function tagopen(w) {
     let s = w.substring(1,w.length-1);
@@ -152,6 +152,9 @@ export function psParse(tokens) {
         if (t.t === '(' || t.t === '(:' || t.t === '[' || t.t === '{') {
             state = t.t;
             nesting.push(group(t.t));
+            if (nesting.length === 1 && nesting[0].s === '{') {
+                nesting[0].s = '';
+            }
             continue;
         }
         switch (state) {
