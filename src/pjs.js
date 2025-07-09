@@ -618,19 +618,53 @@ function stdlib(defns) {
     defns['#f'] = function (sel, ps, ds, defns) {
         return forth(sel, ps, cons(false, ds), defns);
     };
-    defns.get = function (sel, pstack, dstack, defns) {
+    defns.its = function (sel, ps, ds, defns) {
+        // #lang:
+        // its
+        // will get the first of current selection and place it on the stack.
+        // Idea is to do `its {property} get`
+        if (sel && sel.length > 0) {
+            return forth(sel, ps, cons(sel[0], dstack), defns);
+        } else {
+            throw new Error("Empty current selection for 'its'");
+        }
+    };
+    defns.with = function (sel, ps, ds, defns) {
+        // #lang:
+        // with
+        // Goes the opposite way of `its`. Takes the thing
+        // on top of the stack and replaces the current selection
+        // with that. `with` has no effect if the top of the
+        // stack is not an Element.
+        if (ds.car instanceof Element) {
+            return forth([ds.car], ps, ds.cdr, defns);
+        } else {
+            return forth(sel, ps, ds, defns);
+        }
+    };
+    defns.object = function (sel, ps, ds, defns) {
+        // #lang:
+        // object
+        // Places a new empty object on the stack.
+        return forth(sel, ps, cons({}, ds), defns);
+    };
+    defns.get = function (sel, ps, ds, defns) {
         // #lang:
         // obj propname get
-        let propname = dstack.car;
-        let obj = dstack.cdr.car;
+        // Leaves the obj on the stack with the property value on top.
+        // TODO: Is leaving the obj on the stack a good idea?
+        let propname = ds.car;
+        let obj = ds.cdr.car;
         if (!obj[propname]) {
             throw new Error("Property not found");
         }
-        return forth(sel, pstack, cons(obj[propname], dstack.cdr), defns);
+        return forth(sel, ps, cons(obj[propname], ds.cdr), defns);
     };
     defns.set = function (sel, pstack, dstack, defns) {
         // #lang:
         // obj val propname set
+        // Leaves the obj on the stack with the property value on top.
+        // TODO: Is leaving the obj on the stack a good idea?
         let propname = dstack.car;
         let val = dstack.cdr.car;
         let obj = dstack.cdr.cdr.car;
@@ -688,6 +722,36 @@ function stdlib(defns) {
         // Do the current block again. So you have (.... repeat).
         // To exit the current block, you can use the conditional end `?end`.
         return forth(sel, cons(program(ps.car.program), ps.cdr), ds, defns);
+    };
+    defns['while'] = function (sel, ps, ds, defns) {
+        // #lang:
+        // Equivalent to (... not ?end repeat)
+        if (ds.car === true) {
+            return forth(sel, cons(program(ps.car.program), ps.cdr), ds.cdr, defns);
+        } else {
+            return forth(sel, ps, ds.cdr, defns);
+        }
+    };
+    defns['times'] = function (sel, ps, ds, defns) {
+        // #lang:
+        // (: ... ) 5 times
+        // will run the block 5 times, passing 1..5 on the stack each iteration.
+        // If the index is not needed, the block must take care of dropping it.
+        // Note that `end` within such a block will behave like "continue" in
+        // imperative languages and not like "break".
+        let n = ds.car, i = 0;
+        let block = ds.cdr.car.value;
+        ds = ds.cdr.cdr;
+        function next(sel, _ps, ds, defns) {
+            i += 1;
+            if (i <= n) {
+                return forth(sel, cons(program(block), cons(next, ps)), cons(i, ds), defns);
+            } else {
+                return forth(sel, ps, ds, defns);
+            }
+        }
+        return next(sel, ps, ds, defns);
+
     };
     defns['end'] = function (sel, ps, ds, defns) {
         // #lang:
