@@ -800,7 +800,7 @@ export async function install(document, langNames = kLangNames, refresh = false)
     let sel = document.querySelectorAll('[f]');
     for (let el of sel) {
         let prog = psParse(psTokens(el.getAttribute("f")));
-        forth([el], cons(program(prog), empty()), empty(), defns);
+        await forth([el], cons(program(prog), empty()), empty(), defns);
     }
 }
 

@@ -62,7 +62,7 @@ export function openai_provider(options={},api_key="OPENAI_API_KEY") {
             model: "dall-e-2",
             prompt: prompt,
             size: ''+width+'x'+height,
-            style: "natural",
+            //style: "natural",
             n: 1
         });
         if (response.ok) {
@@ -107,7 +107,7 @@ async function promptHTML(el, prompt, history, model_provider) {
     } else {
         html = await model_provider.llm(p.system, p.user);
     }
-    history.push(`<gen user="${p.user}">\n${html}\n</gen>`);
+    history.push(`<gen><input>${p.user}</input>\n<output>${html}\n</output></gen>`);
     el.setAttribute("data-pjsgenhash", h);
     return html;
 }
@@ -141,7 +141,7 @@ export function pslang(defns, api) {
             case 'P':
             case 'DIV': {
                 let prompt = {
-                    system: `Write pure HTML content to suit this ${el.tagName} tag for the purpose described by the user. Do not add Markdown delimiters for raw HTML.`,
+                    system: `Write out only the HTML content to suit this ${el.tagName} tag for the purpose described by the user. Do not add Markdown delimiters for raw HTML.`,
                     user: usertext
                 };
                 el.innerHTML = await promptHTML(el, prompt, history, model_provider);
@@ -158,7 +158,7 @@ export function pslang(defns, api) {
             }
             case 'SECTION': {
                 let prompt = {
-                    system: `Generate contents for a SECTION in HTML according to the user's specification. Only output the HTML content that is to go within a SECTION tag and not use any surrounding text.`,
+                    system: `Generate only the contents for a SECTION in HTML according to the user's specification. Only output the HTML content that is to go within a SECTION tag and not use any surrounding text.`,
                     user: usertext
                 };
                 el.innerHTML = await promptHTML(el, prompt, history, model_provider);
