@@ -797,10 +797,22 @@ export async function install(document, langNames = kLangNames, refresh = false)
         let prog = psParse(psTokens(script.innerText));
         await forth([], cons(program(prog), empty()), empty(), defns);
     }
+
+    // #lang:
+    // The attribute "f" specifies the script to run on the element.
     let sel = document.querySelectorAll('[f]');
     for (let el of sel) {
         let prog = psParse(psTokens(el.getAttribute("f")));
         await forth([el], cons(program(prog), empty()), empty(), defns);
+    }
+
+    // #lang:
+    // If the attribute "f&" is used instead, then the script
+    // will be run asynchronously.
+    let sel = document.querySelectorAll('[f\\&]');
+    for (let el of sel) {
+        let prog = psParse(psTokens(el.getAttribute("f&")));
+        forth([el], cons(program(prog), empty()), empty(), defns);
     }
 }
 
