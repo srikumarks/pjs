@@ -771,7 +771,7 @@ function stdlib(defns) {
         forth(sel, cons(program(block), empty()), dstack.cdr, defns);
         return forth(sel, pstack, dstack.cdr, defns);
     };
-    defns['!'] = function (sel, pstack, dstack, defns) {
+    defns['do'] = function (sel, pstack, dstack, defns) {
         // #lang:
         // Pops the code block off the stack and runs it.
         let code = dstack.car;

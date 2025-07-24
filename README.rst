@@ -178,7 +178,7 @@ Basic vocabulary
 17. ``&`` - takes the code block on the stack top and runs it asynchronously,
     continuing immediately with the rest of the program.
 
-18. ``!`` - takes the code block on the stack top and runs it synchronously.
+18. ``do`` - takes the code block on the stack top and runs it synchronously.
 
 19. ``(... repeat)`` - do the current block again.
 
