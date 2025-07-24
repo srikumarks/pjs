@@ -660,6 +660,10 @@ function stdlib(defns) {
         return forth(sel, ps, cons(arr, ds), defns));
     };
     function getprop(obj, propname) {
+        if (propname in obj) {
+            // For this case, propname can be an integer index.
+            return obj[propname];
+        }
         let val = obj;
         let parts = propname.split(".");
         for (let i = 0; i < parts.length; ++i) {
@@ -671,6 +675,11 @@ function stdlib(defns) {
         return val;
     }
     function setprop(obj, propname, val) {
+        if (propname in obj) {
+            // For this case, propname can be an integer index.
+            obj[propname] = val;
+            return;
+        }
         let target = obj;
         let parts = propname.split(".");
         for (let i = 1; i < parts.length; ++i) {
