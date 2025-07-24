@@ -647,6 +647,18 @@ function stdlib(defns) {
         // Places a new empty object on the stack.
         return forth(sel, ps, cons({}, ds), defns);
     };
+    defns.items = function (sel, ps, ds, defns) {
+        // #lang:
+        // v1 v2 v3 ... vn <n> items -> [v1, v2, v3, ..., vn]
+        let arr = [];
+        let n = ds.car;
+        ds = ds.cdr;
+        for (let i = 0; i < n; ++i) {
+            arr.unshift(ds.car);
+            ds = ds.cdr;
+        }
+        return forth(sel, ps, cons(arr, ds), defns));
+    };
     function getprop(obj, propname) {
         let val = obj;
         let parts = propname.split(".");
