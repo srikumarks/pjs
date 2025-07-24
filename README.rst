@@ -160,9 +160,16 @@ Basic vocabulary
 
 13. ``not`` - boolean not of stack top.
 
-14. ``{propname} get`` - gets the named property of the object on the stack top.
+14. ``obj {propname} get1`` - gets the named property of the object on the stack top.
+    ``object`` will place a new empty object on the stack. If you use ``get`` instead,
+    the object will be on top with the value immediately below it. That way, you can
+    get multiple properties in sequence to place on the stack. The ``{propname}`` can
+    be a period-separated path.
 
-15. ``<val> {propname} set`` - sets the named property of the object on the stack top.
+15. ``<val> obj {propname} put`` - sets the named property of the object and leaves
+    the object on the top. This permits consecutive puts that pull values from the stack.
+    Use ``obj <val> {propname} set -> obj`` which is more appropriate when you're setting
+    multiple computed properties.
 
 16. ``[...] s`` - takes array of values on the stack top, stringifies them and concatenates
     them all and places the result string on the stack. If you use it as ``[...] {...} s``,
