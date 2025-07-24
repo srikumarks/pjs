@@ -648,28 +648,73 @@ function stdlib(defns) {
         // Places a new empty object on the stack.
         return forth(sel, ps, cons({}, ds), defns);
     };
+    function getprop(obj, propname) {
+        let val = obj;
+        let parts = propname.split(".");
+        for (let i = 0; i < parts.length; ++i) {
+            if (!(parts[i] in val)) {
+                throw new Error("Property not found");
+            }
+            val = val[parts[i]];
+        }
+        return val;
+    }
+    function setprop(obj, propname, val) {
+        let target = obj;
+        let parts = propname.split(".");
+        for (let i = 1; i < parts.length; ++i) {
+            if (!(parts[i-1] in target)) {
+                throw new Error("Property not found");
+            }
+            target = target[parts[i-1]];
+        }
+        target[parts[parts.length-1]] = val;
+    }
     defns.get = function (sel, ps, ds, defns) {
         // #lang:
-        // obj propname get
-        // Leaves the obj on the stack with the property value on top.
-        // TODO: Is leaving the obj on the stack a good idea?
+        // obj propname get -> val obj
+        // Leaves the obj on the stack with the property value immediately below the object.
+        // Leaving the object on top lets you get multiple properties at one shot on
+        // the stack before performing operations.
         let propname = ds.car;
         let obj = ds.cdr.car;
-        if (!obj[propname]) {
-            throw new Error("Property not found");
-        }
-        return forth(sel, ps, cons(obj[propname], ds.cdr), defns);
+        let val = getprop(obj, propname);
+        return forth(sel, ps, cons(obj, cons(val, ds.cdr.cdr)), defns);
     };
-    defns.set = function (sel, pstack, dstack, defns) {
+    defns.get1 = function (sel, ps, ds, defns) {
         // #lang:
-        // obj val propname set
-        // Leaves the obj on the stack with the property value on top.
-        // TODO: Is leaving the obj on the stack a good idea?
-        let propname = dstack.car;
-        let val = dstack.cdr.car;
-        let obj = dstack.cdr.cdr.car;
-        obj[propname] = val;
-        return forth(sel, pstack, dstack.cdr.cdr, defns);
+        // obj propname get1 -> val
+        // Gets one property and leaves it on the stack, dropping the
+        // object and the property name.
+        let propname = ds.car;
+        let obj = ds.cdr.car;
+        let val = getprop(obj, propname);
+        return forth(sel, ps, cons(val, ds.cdr.cdr), defns);
+    };
+    defns.set = function (sel, ps, ds, defns) {
+        // #lang:
+        // obj val propname set -> obj
+        // Short for (swap propname put)
+        // This permits multiple consecutive set operations with
+        // computed values.
+        let propname = ds.car;
+        let val = ds.cdr.car;
+        let obj = ds.cdr.cdr.car;
+        setprop(obj, propname, val);
+        return forth(sel, ps, cons(obj, ds.cdr.cdr.cdr), defns);
+    };
+    defns.put = function (sel, ps, ds, defns) {
+        // #lang:
+        // val obj propname put -> obj
+        // Sets the specified property of the object, consuming
+        // the value but leaving the obj on top. This permits
+        // multiple consecutive put operations that consume
+        // the stack incrementally.
+        let propname = ds.car;
+        let obj = ds.cdr.car;
+        let val = ds.cdr.cdr.car;
+        setprop(obj, propname, val);
+        return forth(sel, ps, cons(obj, ds.cdr.cdr.cdr), defns);
     };
     defns.s = function (sel, pstack, dstack, defns) {
         // #lang:
@@ -707,6 +752,8 @@ function stdlib(defns) {
         return forth(sel, pstack, dstack.cdr, defns);
     };
     defns['!'] = function (sel, pstack, dstack, defns) {
+        // #lang:
+        // Pops the code block off the stack and runs it.
         let code = dstack.car;
         if (typeof(code) === 'function') {
             return code(sel, pstack, dstack.cdr, defns);
