@@ -641,19 +641,6 @@ function stdlib(defns) {
             throw new Error("Empty current selection for 'its'");
         }
     };
-    defns.with = function (sel, ps, ds, defns) {
-        // #lang:
-        // with
-        // Goes the opposite way of `its`. Takes the thing
-        // on top of the stack and replaces the current selection
-        // with that. `with` has no effect if the top of the
-        // stack is not an Element.
-        if (ds.car instanceof Element) {
-            return forth([ds.car], ps, ds.cdr, defns);
-        } else {
-            return forth(sel, ps, ds, defns);
-        }
-    };
     defns.object = function (sel, ps, ds, defns) {
         // #lang:
         // object

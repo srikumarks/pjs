@@ -31,11 +31,25 @@ export function pslang(defns, api) {
     // Sets the currrent selection to the set of elements identified
     // by the given css-selector on the stack stop. Sets it up
     // such that when the current code block ends, the previous
-    // selection is restored.
+    // selection is restored. If the top value of the stack is itself
+    // an element or an array of elements, it becomes the current selection.
     defns.sel = function (sel, pstack, dstack, defns) {
         let selector = dstack.car;
-        let context = sel.length > 0 ? sel[0] : document;
-        let newsel = [...context.querySelectorAll(selector)];
+        let newsel = selector;
+        if (typeof(selector) === 'string') {
+            let context = sel.length > 0 ? sel[0] : document;
+            newsel = [...context.querySelectorAll(selector)];
+        } else if (selector instanceof Element) {
+            newsel = [selector];
+        } else if (selector instanceof Array) {
+            newsel = selector;
+            for (let i = 0; i < newsel.length; ++i) {
+                if (newsel[i] instanceof Element) { continue; }
+                throw new Error("Only Element type objects can become part of a selection");
+            }
+        } else {
+            throw new Error("Not a selectable element");
+        }
         let prog = pstack.car;
         pstack = cons(function (ignore_sel, pstack, dstack, defns) {
             return forth(sel, pstack, dstack, defns);
