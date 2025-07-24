@@ -486,8 +486,20 @@ function stdlib(defns) {
     defns.swap = function (sel, pstack, dstack, defns) {
         return forth(sel, pstack, cons(dstack.cdr.car, cons(dstack.car, dstack.cdr.cdr)), defns);
     };
+    function rot(ds, n) {
+        if (n < 0) { throw new Error("Rotation cannot be negative"); }
+        if (n === 0) { return ds; }
+        if (n === 1) { return cons(ds.cdr.car, cons(ds.car, ds.cdr.cdr)); }
+        return rot(rot(ds.cdr, n-1), 1);
+    }
     defns.rot = function (sel, pstack, ds, defns) {
-        return forth(sel, pstack, cons(ds.cdr.cdr.car, cons(ds.car, cons(ds.cdr.car, ds.cdr.cdr.cdr))), defns);
+        // #lang:
+        // v1 v2 v3 rot -> v2 v3 v1
+        return forth(sel, pstack, rot(ds, 2), defns);
+    };
+    defns.rotn = function (sel, ps, ds, defns) {
+        let n = ds.car;
+        return forth(sel, ps, rot(ds.cdr, n), defns);
     };
     defns['+'] = function (sel, pstack, ds, defns) {
         return forth(sel, pstack, cons(ds.car + ds.cdr.car, ds.cdr.cdr), defns);
