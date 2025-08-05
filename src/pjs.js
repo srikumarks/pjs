@@ -48,7 +48,7 @@ function tagselfclosed(w) {
 
 
 export function psTokens(ps) {
-    const tagWords = /^(<([-a-zA-Z]+)>|<[/]([-a-zA-Z]+)>|<([-a-zA-Z]+)[/]>)$/;
+    const tagWords = /^(<([a-zA-Z][-a-zA-Z0-9]*)>|<[/]([a-zA-Z][-a-zA-Z0-9]*)>|<([a-zA-Z][-a-zA-Z0-9]*)[/]>)$/;
     ps = ps.trim();
     let re = /([-+]?[0-9]+([.][0-9]+)?)|([^\s()\[\]{},;]+)|([(][:])|([(])|([)])|([\[])|([\]])|([{])|([}])|([,])|([;])|(\s+)/gu;
     let words = [...ps.matchAll(re)]
@@ -122,6 +122,7 @@ export function psTokens(ps) {
             }
         }
     }
+    console.log("mwords = ", mwords);
     return mwords;
 }
 
@@ -140,6 +141,7 @@ function bracket(b) {
 }
 
 export function psParse(tokens) {
+    debugger;
     let nodes = [];
     let state = false;
     let acc= [];
@@ -215,6 +217,21 @@ export function psParse(tokens) {
                     nesting[nesting.length-1].s += t.s;
                     continue;
                 }
+                if (t.t === '<>') {
+                    nesting[nesting.length-1].value.push(tagopen(t.s));
+                    nesting[nesting.length-1].s += t.s;
+                    continue;
+                }
+                if (t.t === '</>') {
+                    nesting[nesting.length-1].value.push(tagclose(t.s));
+                    nesting[nesting.length-1].s += t.s;
+                    continue;
+                }
+                if (t.t === '<./>') {
+                    nesting[nesting.length-1].value.push(tagselfclosed(t.s));
+                    nesting[nesting.length-1].s += t.s;
+                    continue;
+                }
                 if (t.t === 'n') {
                     nesting[nesting.length-1].value.push(number(t.s));
                     nesting[nesting.length-1].s += t.s;
@@ -236,6 +253,7 @@ export function psParse(tokens) {
     if (nesting.length > 0) {
         throw new Error("Brackets not matched");
     }
+    console.log("nodes = ", nodes);
     return nodes;
 }
 
@@ -323,9 +341,9 @@ export async function forth(sel, pstack, dstack, defns) {
                 // @attr gets attribute of first of current selection.
                 // @=attr sets attributes `attr` of current selection to stack top.
                 if (instr.value[1] === '=') {
-                    let attrName = inst.value.substring(2);
+                    let attrName = instr.value.substring(2);
                     for (let el of sel) {
-                        sel.setAttribute(attrName, dstack.car)
+                        el.setAttribute(attrName, dstack.car)
                     }
                     return forth(sel, pstack, dstack.cdr, defns);
                 } else {
@@ -657,7 +675,7 @@ function stdlib(defns) {
             arr.unshift(ds.car);
             ds = ds.cdr;
         }
-        return forth(sel, ps, cons(arr, ds), defns));
+        return forth(sel, ps, cons(arr, ds), defns);
     };
     function getprop(obj, propname) {
         if (propname in obj) {
@@ -842,8 +860,8 @@ function stdlib(defns) {
 
 const kLangNames = ["weblang", "svglang", "genailang"];
 const langMods = {};
-async function load_vocabs(langNames = kLangNames, refresh = false) {
-    let defns = stdlib({});
+async function load_vocabs(defnsroot = {}, langNames = kLangNames, refresh = false) {
+    let defns = stdlib(defnsroot);
     let api = {forth, cons, empty, psProg};
     for (let modName of langNames) {
         if (!refresh && langMods[modName]) {
@@ -858,7 +876,7 @@ async function load_vocabs(langNames = kLangNames, refresh = false) {
 }
 
 export async function install(document, langNames = kLangNames, refresh = false) {
-    let defns = await load_vocabs(langNames, refresh);
+    let defns = await load_vocabs({}, langNames, refresh);
     let scripts = document.querySelectorAll('script[type="text/f"]');
     for (let script of scripts) {
         let prog = psParse(psTokens(script.innerText));
@@ -876,15 +894,15 @@ export async function install(document, langNames = kLangNames, refresh = false)
     // #lang:
     // If the attribute "f&" is used instead, then the script
     // will be run asynchronously.
-    let sel = document.querySelectorAll('[f\\&]');
+    sel = document.querySelectorAll('[f\\&]');
     for (let el of sel) {
         let prog = psParse(psTokens(el.getAttribute("f&")));
         forth([el], cons(program(prog), empty()), empty(), defns);
     }
 }
 
-export async function frun(programText, sel = null, langNames = kLangNames, refresh = false) {
-    let defns = await load_vocabs(langNames, refresh);
+export async function frun(programText, defnsroot = {}, sel = null, langNames = kLangNames, refresh = false) {
+    let defns = await load_vocabs(defnsroot, langNames, refresh);
     return forth(sel ? [...document.querySelectorAll(sel)] : [], psProg(programText), empty(), defns);
 }
 
