@@ -440,7 +440,7 @@ export async function forth(sel, pstack, dstack, defns) {
         }
         case '[': {
             let n = dstack;
-            pstack = cons(function (sel, pstack, dstack, defns) {
+            let pstack2 = cons(function (sel, _pstack, dstack, defns) {
                 let arr = [];
                 let ds = dstack;
                 while (ds != n) {
@@ -449,7 +449,7 @@ export async function forth(sel, pstack, dstack, defns) {
                 }
                 return forth(sel, pstack, cons(arr, n), defns);
             }, pstack);
-            return forth(sel, cons(program(instr.value), pstack), dstack, defns);
+            return forth(sel, cons(program(instr.value), pstack2), dstack, defns);
         }
         case '{':
             // #lang:
@@ -482,6 +482,17 @@ function stdlib(defns) {
         if (n === 1) { return cons(ds.cdr.car, cons(ds.car, ds.cdr.cdr)); }
         return rot(rot(ds.cdr, n-1), 1);
     }
+    function nth(ds, n) {
+        if (n <= 0) { throw new Error("N-th cannot be <= 0"); }
+        if (n === 1) { return cons(ds.car, ds); }
+        let ds2 = ds;
+        while (n > 1) {
+            ds2 = ds2.cdr;
+            n -= 1;
+        }
+        return cons(ds2.car, ds);
+    }
+
     defns.rot = function (sel, pstack, ds, defns) {
         // #lang:
         // v1 v2 v3 rot -> v2 v3 v1
@@ -490,6 +501,13 @@ function stdlib(defns) {
     defns.rotn = function (sel, ps, ds, defns) {
         let n = ds.car;
         return forth(sel, ps, rot(ds.cdr, n), defns);
+    };
+    defns.nth = function (sel, ps, ds, defns) {
+        // Places a copy of the nth stack item on top again
+        // So `1 nth` is the same as `dup` and `<a> <b> 2 nth` gives `<a> <b> <a>`
+        // and so on.
+        let n = ds.car;
+        return forth(sel, ps, nth(ds.cdr, n), defns);
     };
     defns['+'] = function (sel, pstack, ds, defns) {
         return forth(sel, pstack, cons(ds.car + ds.cdr.car, ds.cdr.cdr), defns);
