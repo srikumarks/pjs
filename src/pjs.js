@@ -140,121 +140,93 @@ function bracket(b) {
     }
 }
 
-export function psParse(tokens) {
-    debugger;
-    let nodes = [];
-    let state = false;
-    let acc= [];
-    let nesting = [];
-    for (let i = 0; i < tokens.length; ++i) {
-        let t = tokens[i];
-        if (t.t === '?') {
-            throw new Error("Unknown term " + t.s);
-        }
-        if (t.t === '(' || t.t === '(:' || t.t === '[' || t.t === '{') {
-            state = t.t;
-            nesting.push(group(t.t));
-            if (nesting.length === 1 && nesting[0].s === '{') {
-                nesting[0].s = '';
+function parseOneTerm(tokens, i) {
+    let t = tokens[i];
+    if (t.t === '?') {
+        throw new Error("Unknown term " + t.s);
+    }
+
+    if (t.t === '{') {
+        // Parse out one text unit. Nested {} must match
+        // but there is no expectation of anything else
+        // matching.
+        let nesting = 1;
+        let s = [];
+        for (let j = i+1; j < tokens.length; ++j) {
+            let e = tokens[j];
+            if (e.t === '}') {
+                nesting -= 1;
+                if (nesting > 0) {
+                    s.push('}');
+                }
+            } else if (e.t === '{') {
+                nesting += 1;
+                s.push('{');
+            } else {
+                s.push(e.s);
             }
-            continue;
+            if (nesting === 0) {
+                return {term: {t: '{', s: s.join('')}, next: j+1};
+            }
         }
-        switch (state) {
-            case false:
-                if (t.t === 'w') {
-                    nodes.push(word(t.s));
-                    continue;
-                }
-                if (t.t === '<>') {
-                    nodes.push(tagopen(t.s));
-                    continue;
-                }
-                if (t.t === '</>') {
-                    nodes.push(tagclose(t.s));
-                    continue;
-                }
-                if (t.t === '<./>') {
-                    nodes.push(tagselfclosed(t.s));
-                    continue;
-                }
-                if (t.t === 'n') {
-                    nodes.push(number(t.s));
-                    continue;
-                }
-                if (t.t === ' ') {
-                    continue;
-                }
-                continue;
-            case '(':
-            case '(:':
-            case '[':
-            case '{':
-                if (t.t === ')' || t.t === ']' || t.t === '}') {
-                    if (nesting.length > 0 && nesting[nesting.length-1].t[0] == bracket(t.t)) {
-                        let n = nesting[nesting.length-1];
-                        nesting.pop();
-                        if (nesting.length > 0) {
-                            nesting[nesting.length-1].value.push(n);
-                            nesting[nesting.length-1].s += n.s + t.s;
-                        } else {
-                            nodes.push(n);
-                        }
-                        if (nesting.length === 0) {
-                            state = false;
-                        } else {
-                            state = nesting[nesting.length-1].t;
-                        }
-                    } else {
-                        throw new Error("Mismatched brackets " + t.t);
-                    }
-                    continue;
-                }
-                if (nesting.length === 0) {
-                    throw new Error("Weird state");
-                }
-                if (t.t === 'w') {
-                    nesting[nesting.length-1].value.push(word(t.s));
-                    nesting[nesting.length-1].s += t.s;
-                    continue;
-                }
-                if (t.t === '<>') {
-                    nesting[nesting.length-1].value.push(tagopen(t.s));
-                    nesting[nesting.length-1].s += t.s;
-                    continue;
-                }
-                if (t.t === '</>') {
-                    nesting[nesting.length-1].value.push(tagclose(t.s));
-                    nesting[nesting.length-1].s += t.s;
-                    continue;
-                }
-                if (t.t === '<./>') {
-                    nesting[nesting.length-1].value.push(tagselfclosed(t.s));
-                    nesting[nesting.length-1].s += t.s;
-                    continue;
-                }
-                if (t.t === 'n') {
-                    nesting[nesting.length-1].value.push(number(t.s));
-                    nesting[nesting.length-1].s += t.s;
-                    continue;
-                }
-                if (t.t === ' ') {
-                    if (state === '{') {
-                        nesting[nesting.length-1].value.push(whitespace(t.s));
-                    }
-                    nesting[nesting.length-1].s += t.s;
-                    continue;
-                }
-                continue;
-            default:
-                throw new Error("Invalid fall through");
+        return {term: {t: '{', s: s.join('')}, next: tokens.length};
+    }
+
+    if (t.t === '(' || t.t === '(:' || t.t === '[') {
+        // Parse out one block of terms.
+        let block = [];
+        for (let j = i+1; j < tokens.length;) {
+            if (tokens[j].t[0] === bracket(t.t)) {
+                let g = group(t.t);
+                g.value = block;
+                return {term: g, next: j+1};
+            } else if (tokens[j].t === ' ') {
+                j = j + 1; // Skip whitespace.
+            } else {
+                let p = parseOneTerm(tokens, j);
+                block.push(p.term);
+                j = p.next;
+            }
         }
     }
 
-    if (nesting.length > 0) {
-        throw new Error("Brackets not matched");
+    // The remaining kinds are all atomic.
+    if (t.t === 'w') {
+        return {term: word(t.s), next: i+1};
     }
-    console.log("nodes = ", nodes);
-    return nodes;
+
+    if (t.t === '<>') {
+        return {term: tagopen(t.s), next: i+1};
+    }
+
+    if (t.t === '</>') {
+        return {term: tagclose(t.s), next: i+1};
+    }
+
+    if (t.t === '<./>') {
+        return {term: tagselfclosed(t.s), next: i+1};
+    }
+
+    if (t.t === 'n') {
+        return {term: number(t.s), next: i+1};
+    }
+
+    if (t.t === ' ') {
+        // We skip whitespace
+        return parseOneTerm(tokens, i+1);
+    }
+
+    throw new Error("Unknown token " + JSON.stringify(t))
+}
+
+export function psParse(tokens) {
+    let terms = [];
+    for (let i = 0; i < tokens.length;) {
+        let p = parseOneTerm(tokens, i);
+        terms.push(p.term);
+        i = p.next;
+    }
+    return terms;
 }
 
 function program(p, i=0, i_end=-1) {
