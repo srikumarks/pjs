@@ -873,12 +873,16 @@ export async function install(document, langNames = kLangNames, refresh = false)
     }
 }
 
+const isBrowser = (function () { return typeof(window) !== 'undefined'; })();
+
 export async function frun(programText, defnsroot = {}, sel = null, langNames = kLangNames, refresh = false) {
     let defns = await load_vocabs(defnsroot, langNames, refresh);
-    return forth(sel ? [...document.querySelectorAll(sel)] : [], psProg(programText), empty(), defns);
+    let els = [];
+    if (isBrowser) {
+        els = sel ? [...document.querySelectorAll(sel)] : [document.body];
+    }
+    return forth(els, psProg(programText), empty(), defns);
 }
-
-const isBrowser = (function () { return typeof(window) !== 'undefined'; })();
 
 if (isBrowser) {
     let myScript = document.querySelector('[src$="pjs.js"]');
